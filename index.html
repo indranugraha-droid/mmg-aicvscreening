@@ -159,9 +159,10 @@
                 <i data-lucide="upload-cloud" class="w-8 h-8"></i>
               </div>
               <p class="text-sm font-semibold text-slate-700 mt-3 group-hover:text-indigo-700">Tarik dan Lepas Dokumen CV di sini</p>
-              <p class="text-xs text-slate-400 mt-1">atau klik untuk menelusuri file dari komputer (Bisa banyak sekaligus)</p>
+              <button type="button" id="btn-click-upload" class="mt-2 text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-bold transition">
+                atau klik untuk menelusuri file dari komputer
+              </button>
               <span class="text-[10px] mt-2.5 px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-full font-medium">Hanya format PDF</span>
-            </div>
           </div>
           
           <div class="pt-2">
@@ -592,8 +593,17 @@
       validateForm();
     });
 
-    // Dropzone Drag-and-Drop Triggers
-    dropzone.addEventListener('click', () => fileInput.click());
+      // Dropzone Drag-and-Drop Triggers
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      // Tambahan bypass klik manual darurat
+      const btnClickUpload = document.getElementById('btn-click-upload');
+      if (btnClickUpload) {
+        btnClickUpload.addEventListener('click', (e) => {
+          e.stopPropagation(); // Mencegah bentrokan klik dengan kontainer luarnya
+          fileInput.click();
+        });
+      }
     
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
