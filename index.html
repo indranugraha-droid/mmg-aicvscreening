@@ -154,7 +154,7 @@
             </h2>
             
             <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center group">
-              <input type="file" id="cv-files" multiple accept="application/pdf" class="hidden">
+              <input type="file" id="cv-files" multiple accept="application/pdf" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
               <div class="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition duration-300">
                 <i data-lucide="upload-cloud" class="w-8 h-8"></i>
               </div>
@@ -594,7 +594,12 @@
     });
 
       // Dropzone Drag-and-Drop Triggers
-      dropzone.addEventListener('click', () => fileInput.click());
+      dropzone.addEventListener('click', (e) => {
+        // Memastikan klik tidak terhalang oleh element teks atau ikon di dalamnya
+        if (e.target !== fileInput) {
+          fileInput.click();
+        }
+      });
 
       // Tambahan bypass klik manual darurat
       const btnClickUpload = document.getElementById('btn-click-upload');
