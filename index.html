@@ -7,29 +7,38 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&family=JetBrains+Mono:wght=400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
-  
+
   <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .code-font { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    /* Input file tersembunyi — akses via <label for="cv-files"> tanpa perlu JS click */
+    #cv-files {
+      display: none !important;
     }
-    .code-font {
-      font-family: 'JetBrains Mono', monospace;
+
+    /* Label dropzone berperilaku seperti button — klik mana saja trigger file picker */
+    #dropzone-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
     }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+
+    #dropzone-label:hover .upload-icon-wrap {
+      color: #4f46e5;
+      transform: scale(1.1);
     }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94A3B8;
+
+    #dropzone-label:hover .upload-headline {
+      color: #4338ca;
     }
   </style>
 </head>
@@ -41,20 +50,20 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl shadow-inner">
-          <i data-lucide="sparkles" class="w-6 h-6 animate-pulse"></i>
+          <i data-lucide="sparkles" class="w-6 h-6"></i>
         </div>
         <div>
           <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            HR CV Smart Screener <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">v2.5 Pro</span>
+            HR CV Smart Screener <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">v2.6 Pro</span>
           </h1>
-          <p class="text-xs text-slate-500">Penyaring CV Otomatis Berbasis Gemini AI dengan Anti-Limit Rate-Limit</p>
+          <p class="text-xs text-slate-500">Penyaring CV Otomatis Berbasis Gemini AI dengan Anti-Rate-Limit</p>
         </div>
       </div>
       <div class="flex items-center space-x-3">
         <div class="text-xs text-right hidden sm:block">
           <span class="text-slate-400">Status API:</span>
-          <span class="font-semibold text-emerald-600 flex items-center justify-end gap-1">
-            <span class="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-ping"></span> Aktif & Siap
+          <span id="api-status-indicator" class="font-semibold text-emerald-600 flex items-center justify-end gap-1">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> Siap
           </span>
         </div>
       </div>
@@ -62,44 +71,48 @@
   </header>
 
   <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+    <!-- INFO BANNER -->
     <div class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start space-x-3 text-blue-800">
       <i data-lucide="shield-check" class="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600"></i>
       <div class="text-sm">
-        <span class="font-bold">Sistem Anti-Blokir Aktif:</span> Aplikasi ini sekarang dilengkapi dengan fitur <strong>Exponential Backoff</strong> (mencoba kembali otomatis saat kuota limit habis) serta <strong>Pengaturan Kecepatan Antrean</strong> di bawah ini untuk mencegah kegagalan analisis dokumen.
+        <span class="font-bold">Sistem Anti-Blokir Aktif:</span> Dilengkapi fitur <strong>Exponential Backoff</strong> (coba ulang otomatis saat kuota habis) dan <strong>Pengaturan Kecepatan Antrean</strong> untuk mencegah kegagalan analisis.
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      
+
+      <!-- LEFT PANEL -->
       <section class="lg:col-span-5 space-y-6">
-        
+
+        <!-- API KEY -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <i data-lucide="key-round" class="w-4 h-4 text-indigo-500"></i> API Key Gemini
             </h2>
-            <a href="https://aistudio.google.com/" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition">
+            <a href="https://aistudio.google.com/" target="_blank" rel="noopener" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition">
               Dapatkan Key <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
             </a>
           </div>
           <div class="space-y-3">
             <div class="relative">
-              <input type="password" id="gemini-api-key" placeholder="Masukkan API Key Gemini Anda (AIzaSy...)" class="w-full pl-4 pr-16 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 font-mono">
+              <input type="password" id="gemini-api-key" placeholder="Masukkan API Key Gemini Anda (AIzaSy...)"
+                class="w-full pl-4 pr-16 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 font-mono">
               <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                <a href="https://aistudio.google.com/" target="_blank" class="text-slate-400 hover:text-indigo-600 transition" title="Buka Google AI Studio">
-                  <i data-lucide="external-link" class="w-4 h-4"></i>
-                </a>
-                <button type="button" id="btn-toggle-key" class="text-slate-400 hover:text-slate-600 transition">
+                <button type="button" id="btn-toggle-key" class="text-slate-400 hover:text-slate-600 transition" title="Tampilkan/sembunyikan key">
                   <i data-lucide="eye" class="w-4 h-4" id="eye-icon"></i>
                 </button>
               </div>
             </div>
+            <!-- FIX: Hapus klaim "tidak dikirim ke server luar" yang tidak akurat — key memang dikirim ke Google API -->
             <p class="text-[11px] text-slate-500 leading-relaxed">
-              * Key Anda disimpan secara aman di browser lokal Anda (<span class="font-semibold text-indigo-600">localStorage</span>). Kami tidak mengirimkan key Anda ke server luar selain ke Google Gemini API resmi.
+              * Key disimpan di <span class="font-semibold text-indigo-600">localStorage</span> browser Anda dan hanya dikirim langsung ke Google Gemini API.
             </p>
           </div>
         </div>
-        
+
+        <!-- JOB CRITERIA -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -109,22 +122,24 @@
               <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Pakai Template
             </button>
           </div>
-          
           <div class="space-y-4">
             <div>
               <label for="job-title" class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Posisi / Pekerjaan</label>
-              <input type="text" id="job-title" placeholder="Contoh: Senior Full Stack Engineer" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 font-medium">
+              <input type="text" id="job-title" placeholder="Contoh: Senior Full Stack Engineer"
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 font-medium">
             </div>
-
             <div>
               <label for="job-desc" class="block text-xs font-semibold text-slate-600 mb-1.5">Deskripsi Pekerjaan & Syarat Utama</label>
-              <textarea id="job-desc" rows="6" placeholder="Sebutkan keahlian wajib, minimal tahun pengalaman kerja, pendidikan, dan tanggung jawab pekerjaan utama di sini..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 leading-relaxed"></textarea>
+              <textarea id="job-desc" rows="6" placeholder="Sebutkan keahlian wajib, minimal tahun pengalaman, pendidikan, dan tanggung jawab utama..."
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm text-slate-800 leading-relaxed"></textarea>
             </div>
           </div>
         </div>
 
+        <!-- SPEED + UPLOAD CONTROLS -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-          
+
+          <!-- Speed Controls -->
           <div>
             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 mb-3">
               <i data-lucide="sliders" class="w-4 h-4 text-indigo-500"></i> Kontrol Kecepatan Antrean
@@ -144,52 +159,61 @@
               </button>
             </div>
             <p class="text-[11px] text-slate-500 mt-2 leading-relaxed">
-              * Mode <strong>Aman</strong> sangat direkomendasikan jika menggunakan API gratisan guna menghindari pesan error kuota habis.
+              * Mode <strong>Aman</strong> sangat direkomendasikan untuk API gratis guna menghindari error kuota.
             </p>
           </div>
 
+          <!-- File Upload -->
           <div>
             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 mb-3">
               <i data-lucide="file-text" class="w-4 h-4 text-indigo-500"></i> Unggah CV Pelamar (PDF)
             </h2>
-            
-            <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center group">
-              <input type="file" id="cv-files" multiple accept="application/pdf" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">
-              <div class="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition duration-300">
+
+            <!-- INPUT tersembunyi — diaktifkan oleh <label for="cv-files"> di bawah tanpa JS -->
+            <input type="file" id="cv-files" multiple accept="application/pdf">
+
+            <!-- DROPZONE: pakai <label> native — klik di mana saja dalam area ini langsung buka file picker.
+                 Ini bekerja di semua environment: browser biasa, GitHub Pages, maupun sandbox iframe. -->
+            <label for="cv-files" id="dropzone-label" id="dropzone"
+              class="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center transition-all duration-200 w-full group">
+              <div class="upload-icon-wrap p-3 bg-white rounded-full shadow-sm text-slate-400 transition duration-300 inline-block">
                 <i data-lucide="upload-cloud" class="w-8 h-8"></i>
               </div>
-              <p class="text-sm font-semibold text-slate-700 mt-3 group-hover:text-indigo-700">Tarik dan Lepas Dokumen CV di sini</p>
-              <button type="button" id="btn-click-upload" class="mt-2 text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-bold transition">
-                atau klik untuk menelusuri file dari komputer
+              <p class="upload-headline text-sm font-semibold text-slate-700 mt-3">Klik area ini atau Tarik & Lepas PDF</p>
+              <span class="inline-block mt-2 text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg font-bold">
+                Pilih File PDF
+              </span>
+              <span class="block text-[10px] mt-2.5 px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-full font-medium w-fit mx-auto">
+                Hanya format PDF · Maks. 15 file
+              </span>
+            </label>
+
+            <div class="pt-3">
+              <button id="btn-start-process" disabled
+                class="w-full bg-slate-200 text-slate-400 py-3.5 px-4 rounded-xl font-bold text-sm tracking-wide shadow-sm flex items-center justify-center gap-2 transition duration-200 cursor-not-allowed">
+                <i data-lucide="play" class="w-4 h-4"></i> MULAI PROSES SARING CV
               </button>
-              <span class="text-[10px] mt-2.5 px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-full font-medium">Hanya format PDF</span>
-          </div>
-          
-          <div class="pt-2">
-            <button id="btn-start-process" disabled class="w-full bg-slate-200 text-slate-400 py-3.5 px-4 rounded-xl font-bold text-sm tracking-wide shadow-sm flex items-center justify-center gap-2 transition duration-200 cursor-not-allowed">
-              <i data-lucide="play" class="w-4 h-4"></i> MULAI PROSES SARING CV
-            </button>
+            </div>
           </div>
 
         </div>
-
       </section>
 
+      <!-- RIGHT PANEL -->
       <section class="lg:col-span-7 space-y-6">
-        
+
+        <!-- Progress Box -->
         <div id="progress-box" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hidden">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
               <div class="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-ping"></div>
-              <span class="text-xs font-extrabold text-slate-900 uppercase tracking-widest">PROSES PENYARINGAN BERJALAN</span>
+              <span class="text-xs font-extrabold text-slate-900 uppercase tracking-widest">PENYARINGAN BERJALAN</span>
             </div>
             <span id="progress-percentage" class="text-sm font-bold text-indigo-600 code-font">0%</span>
           </div>
-          
           <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200/50">
-            <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full w-0 transition-all duration-300"></div>
+            <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full w-0 transition-all duration-500 rounded-full"></div>
           </div>
-
           <div class="grid grid-cols-4 gap-4 mt-5 pt-4 border-t border-slate-100 text-center">
             <div>
               <span class="block text-xs font-semibold text-slate-400 uppercase">Antre</span>
@@ -210,8 +234,9 @@
           </div>
         </div>
 
+        <!-- Queue Panel -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="p-5 border-b border-slate-150 flex items-center justify-between bg-slate-50/50">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <i data-lucide="list-ordered" class="w-4 h-4 text-indigo-500"></i> Antrean Berkas (<span id="queue-count">0</span>)
             </h2>
@@ -219,23 +244,19 @@
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Kosongkan
             </button>
           </div>
-          
           <div id="queue-placeholder" class="py-12 px-6 text-center text-slate-400">
             <i data-lucide="folder-sync" class="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]"></i>
-            <p class="text-sm font-medium mt-3">Belum ada CV pelamar yang diunggah.</p>
+            <p class="text-sm font-medium mt-3">Belum ada CV yang diunggah.</p>
             <p class="text-xs text-slate-400 mt-1">Gunakan kotak unggah di sebelah kiri untuk memasukkan berkas.</p>
           </div>
-
-          <div id="queue-list" class="divide-y divide-slate-100 max-h-[380px] overflow-y-auto hidden">
-            </div>
+          <div id="queue-list" class="divide-y divide-slate-100 max-h-[380px] overflow-y-auto hidden"></div>
         </div>
 
       </section>
-
     </div>
 
+    <!-- RESULTS PANEL -->
     <section class="mt-12 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hidden" id="results-panel">
-      
       <div class="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -243,25 +264,25 @@
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Hasil seleksi otomatis berdasarkan kesesuaian kriteria pekerjaan</p>
         </div>
-        
         <div class="flex flex-wrap items-center gap-2">
-          <button id="btn-compare" disabled class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+          <button id="btn-compare" disabled
+            class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
             <i data-lucide="git-compare" class="w-4 h-4"></i> Bandingkan Terpilih
           </button>
-          
-          <button id="btn-export-excel" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm">
+          <button id="btn-export-excel"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm">
             <i data-lucide="download" class="w-4 h-4"></i> Unduh Laporan Excel
           </button>
         </div>
       </div>
 
       <div class="px-6 py-3.5 bg-slate-50/50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center space-x-2">
-          <span class="text-xs font-semibold text-slate-400">Filter Status:</span>
+        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+          <span class="text-xs font-semibold text-slate-400">Filter:</span>
           <button class="filter-tab px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-100 text-indigo-700" data-status="all">Semua</button>
-          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="rekomendasi">Lolos (Score 80-100)</button>
-          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="pertimbangan">Pertimbangkan (60-79)</button>
-          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="tolak">Tolak (&lt; 60)</button>
+          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="rekomendasi">Lolos (80–100)</button>
+          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="pertimbangan">Pertimbangkan (60–79)</button>
+          <button class="filter-tab px-3 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg" data-status="tolak">Tolak (&lt;60)</button>
         </div>
         <div class="text-xs text-slate-500 font-medium">
           Menampilkan <span id="filtered-count" class="font-bold text-slate-800">0</span> dari <span id="total-results-count" class="font-bold text-slate-800">0</span> kandidat
@@ -277,25 +298,24 @@
               </th>
               <th class="py-3 px-6">Nama Lengkap & Berkas</th>
               <th class="py-3 px-6">Pendidikan & Pengalaman</th>
-              <th class="py-3 px-6 text-center">Skor Kecocokan</th>
+              <th class="py-3 px-6 text-center">Skor</th>
               <th class="py-3 px-6">Rekomendasi</th>
               <th class="py-3 px-6 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody id="results-table-body" class="divide-y divide-slate-100 text-sm">
-            </tbody>
+          <tbody id="results-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
         </table>
       </div>
     </section>
 
   </main>
 
+  <!-- COMPARE MODAL -->
   <div id="compare-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" id="close-compare-bg"></div>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" id="close-compare-bg"></div>
     <div class="relative min-h-screen flex items-center justify-center p-4">
       <div class="relative bg-white rounded-3xl shadow-2xl max-w-6xl w-full overflow-hidden flex flex-col border border-slate-100">
-        
-        <div class="p-6 border-b border-slate-150 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
           <div class="flex items-center space-x-3">
             <div class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <i data-lucide="git-compare" class="w-5 h-5"></i>
@@ -309,40 +329,34 @@
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-
         <div class="p-6 overflow-x-auto">
-          <div class="flex gap-4 min-w-[800px]" id="compare-cards-wrapper">
-            </div>
+          <div class="flex gap-4 min-w-[800px]" id="compare-cards-wrapper"></div>
         </div>
-
         <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
           <button id="btn-close-compare-foot" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition">Tutup Perbandingan</button>
         </div>
-
       </div>
     </div>
   </div>
 
+  <!-- DETAIL MODAL -->
   <div id="detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" id="close-detail-bg"></div>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" id="close-detail-bg"></div>
     <div class="relative min-h-screen flex items-center justify-center p-4">
       <div class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col border border-slate-100">
-        
-        <div id="detail-modal-header" class="p-6 border-b border-slate-150 flex items-center justify-between text-white">
+        <div id="detail-modal-header" class="p-6 border-b border-slate-100 flex items-center justify-between text-white">
           <div class="flex items-center space-x-4">
             <div id="detail-avatar" class="h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-bold bg-white text-indigo-600 shadow-sm uppercase"></div>
             <div>
               <h3 id="detail-nama" class="text-lg font-extrabold text-white tracking-tight">Nama Lengkap</h3>
-              <p id="detail-posisi" class="text-xs text-white/85 mt-0.5">Pendidikan & Pengalaman</p>
+              <p id="detail-posisi" class="text-xs text-white/85 mt-0.5"></p>
             </div>
           </div>
           <button id="btn-close-detail" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-
         <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto" id="detail-modal-body">
-          
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center">
               <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">SKOR KECOCOKAN</span>
@@ -350,67 +364,59 @@
             </div>
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 col-span-2">
               <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Status Evaluasi</span>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <span id="detail-status-pill" class="text-xs px-2.5 py-1 rounded-full font-bold"></span>
-                <span id="detail-status-desc" class="text-xs text-slate-500">Kandidat memenuhi kriteria esensial.</span>
+                <span id="detail-status-desc" class="text-xs text-slate-500"></span>
               </div>
             </div>
           </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="p-5 bg-emerald-50/40 border border-emerald-100 rounded-2xl">
               <h4 class="text-xs font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                 <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i> Kelebihan Utama
               </h4>
-              <ul id="detail-kelebihan" class="space-y-2 text-xs text-slate-700 leading-relaxed">
-                </ul>
+              <ul id="detail-kelebihan" class="space-y-2 text-xs text-slate-700 leading-relaxed"></ul>
             </div>
-            
             <div class="p-5 bg-rose-50/40 border border-rose-100 rounded-2xl">
               <h4 class="text-xs font-extrabold text-rose-800 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                 <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600"></i> Kekurangan / Kesenjangan
               </h4>
-              <ul id="detail-kekurangan" class="space-y-2 text-xs text-slate-700 leading-relaxed">
-                </ul>
+              <ul id="detail-kekurangan" class="space-y-2 text-xs text-slate-700 leading-relaxed"></ul>
             </div>
           </div>
-
           <div class="space-y-4">
             <div class="p-5 bg-indigo-50/30 border border-indigo-100 rounded-2xl">
               <h4 class="text-xs font-extrabold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600"></i> Area Pengembangan
               </h4>
-              <p id="detail-area-pengembangan" class="text-xs text-slate-700 leading-relaxed">...</p>
+              <p id="detail-area-pengembangan" class="text-xs text-slate-700 leading-relaxed"></p>
             </div>
-
             <div class="p-5 bg-slate-50 border border-slate-200 rounded-2xl">
               <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <i data-lucide="text-quote" class="w-4 h-4 text-slate-500"></i> Ringkasan Evaluasi AI
               </h4>
-              <p id="detail-ringkasan" class="text-xs text-slate-600 leading-relaxed italic">...</p>
+              <p id="detail-ringkasan" class="text-xs text-slate-600 leading-relaxed italic"></p>
             </div>
           </div>
-
         </div>
-
         <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
           <span id="detail-filename" class="text-xs text-slate-400 font-medium select-all"></span>
           <button id="btn-close-detail-foot" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition">Tutup Detail</button>
         </div>
-
       </div>
     </div>
   </div>
 
+  <!-- TOAST -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white rounded-2xl border shadow-xl p-4 flex items-start space-x-3 transform translate-y-24 opacity-0 transition duration-300 pointer-events-none">
     <div id="toast-icon-bg" class="p-2 rounded-xl text-white">
       <i id="toast-icon" data-lucide="info" class="w-5 h-5"></i>
     </div>
     <div class="flex-grow">
       <h4 id="toast-title" class="text-xs font-bold text-slate-900">Notifikasi</h4>
-      <p id="toast-msg" class="text-xs text-slate-500 mt-0.5">Pesan sistem di sini.</p>
+      <p id="toast-msg" class="text-xs text-slate-500 mt-0.5"></p>
     </div>
-    <button id="btn-close-toast" class="text-slate-400 hover:text-slate-600 transition">
+    <button id="btn-close-toast" class="text-slate-400 hover:text-slate-600 transition flex-shrink-0">
       <i data-lucide="x" class="w-4 h-4"></i>
     </button>
   </div>
@@ -425,33 +431,33 @@
   </footer>
 
   <script>
-    // Initialize PDF.js
+    // =============================================
+    // INIT
+    // =============================================
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    lucide.createIcons();
 
-    // Global App State
+    // =============================================
+    // STATE
+    // =============================================
     let queue = [];
     let screeningResults = [];
     let currentProcessingSet = new Set();
     let isProcessing = false;
-    let concurrencyLimit = 1; // Default to 'Safe' (1-by-1)
-    let delayBetweenTasks = 2000; // 2 seconds breathing room to prevent rate limiting
+    let concurrencyLimit = 1;
+    let delayBetweenTasks = 2000;
+    let activeFilter = 'all';
 
-    // Templates for testing
+    const MAX_FILES = 15;
+
     const templates = {
       title: "Senior Frontend React Developer",
-      desc: "Kualifikasi Utama:
-1. Berpengalaman kerja minimal 4 tahun di bidang frontend web development.
-2. Menguasai dengan sangat baik React, React Hooks, State Management (Redux/Zustand), serta Tailwind CSS.
-3. Mahir dalam integrasi API RESTful atau GraphQL, serta mengerti optimasi performa halaman web.
-4. Memiliki pemahaman yang kuat tentang TypeScript menjadi nilai tambah besar.
-5. Terbiasa bekerja sama dalam tim menggunakan Git."
+      desc: "Kualifikasi Utama:\n1. Berpengalaman kerja minimal 4 tahun di bidang frontend web development.\n2. Menguasai React, React Hooks, State Management (Redux/Zustand), serta Tailwind CSS.\n3. Mahir integrasi API RESTful atau GraphQL, serta mengerti optimasi performa.\n4. Memahami TypeScript (nilai tambah besar).\n5. Terbiasa bekerja dalam tim menggunakan Git."
     };
 
-    // Fallback API Key removed as requested
-    const apiKey = ""; 
-
-    // DOM Elements
-    const dropzone = document.getElementById('dropzone');
+    // =============================================
+    // DOM REFERENCES
+    // =============================================
     const fileInput = document.getElementById('cv-files');
     const queueList = document.getElementById('queue-list');
     const queuePlaceholder = document.getElementById('queue-placeholder');
@@ -471,110 +477,95 @@
     const filteredCount = document.getElementById('filtered-count');
     const jobTitleInput = document.getElementById('job-title');
     const jobDescInput = document.getElementById('job-desc');
-    const btnLoadTemplate = document.getElementById('btn-load-template');
-    
-    // API Key DOM Elements
     const geminiApiKeyInput = document.getElementById('gemini-api-key');
     const btnToggleKey = document.getElementById('btn-toggle-key');
     const eyeIcon = document.getElementById('eye-icon');
-
-    // Concurrency Selection
-    const speedSafe = document.getElementById('speed-safe');
-    const speedMedium = document.getElementById('speed-medium');
-    const speedFast = document.getElementById('speed-fast');
-
-    // Modals & Popups
     const detailModal = document.getElementById('detail-modal');
     const compareModal = document.getElementById('compare-modal');
     const compareCardsWrapper = document.getElementById('compare-cards-wrapper');
     const toast = document.getElementById('toast');
 
-    // Load saved API Key from localStorage on startup
+    // =============================================
+    // API KEY
+    // =============================================
     if (localStorage.getItem('gemini_api_key')) {
       geminiApiKeyInput.value = localStorage.getItem('gemini_api_key');
     }
 
-    // Toggle API Key visibility
     btnToggleKey.addEventListener('click', () => {
-      if (geminiApiKeyInput.type === 'password') {
-        geminiApiKeyInput.type = 'text';
-        eyeIcon.setAttribute('data-lucide', 'eye-off');
-      } else {
-        geminiApiKeyInput.type = 'password';
-        eyeIcon.setAttribute('data-lucide', 'eye');
-      }
+      const isPassword = geminiApiKeyInput.type === 'password';
+      geminiApiKeyInput.type = isPassword ? 'text' : 'password';
+      eyeIcon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
       lucide.createIcons();
     });
 
-    // Save key automatically on edit
     geminiApiKeyInput.addEventListener('input', () => {
       localStorage.setItem('gemini_api_key', geminiApiKeyInput.value.trim());
       validateForm();
     });
 
-    // UI Toast Notification
+    // =============================================
+    // TOAST
+    // =============================================
     function showToast(title, message, type = 'info') {
       const iconBg = document.getElementById('toast-icon-bg');
       const icon = document.getElementById('toast-icon');
-      
-      if (type === 'success') {
-        iconBg.className = "p-2 rounded-xl text-white bg-emerald-500 shadow-emerald-100 shadow-md";
-        icon.setAttribute('data-lucide', 'check-circle-2');
-      } else if (type === 'error') {
-        iconBg.className = "p-2 rounded-xl text-white bg-rose-500 shadow-rose-100 shadow-md";
-        icon.setAttribute('data-lucide', 'alert-circle');
-      } else {
-        iconBg.className = "p-2 rounded-xl text-white bg-blue-500 shadow-blue-100 shadow-md";
-        icon.setAttribute('data-lucide', 'info');
-      }
-      
+      const map = {
+        success: { bg: 'bg-emerald-500 shadow-emerald-100 shadow-md', icon: 'check-circle-2' },
+        error:   { bg: 'bg-rose-500 shadow-rose-100 shadow-md', icon: 'alert-circle' },
+        info:    { bg: 'bg-blue-500 shadow-blue-100 shadow-md', icon: 'info' },
+        warning: { bg: 'bg-amber-500 shadow-amber-100 shadow-md', icon: 'alert-triangle' }
+      };
+      const cfg = map[type] || map.info;
+      iconBg.className = `p-2 rounded-xl text-white ${cfg.bg}`;
+      icon.setAttribute('data-lucide', cfg.icon);
       document.getElementById('toast-title').textContent = title;
       document.getElementById('toast-msg').textContent = message;
       lucide.createIcons();
-
       toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
       toast.classList.add('translate-y-0', 'opacity-100');
-
-      setTimeout(() => {
-        closeToast();
-      }, 5000);
+      setTimeout(closeToast, 5000);
     }
 
     function closeToast() {
       toast.classList.remove('translate-y-0', 'opacity-100');
       toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
     }
-
     document.getElementById('btn-close-toast').addEventListener('click', closeToast);
 
-    // Speed controls listeners
+    // =============================================
+    // SPEED CONTROLS
+    // =============================================
     function updateSpeedUI(activeBtn, limit, delay) {
-      document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.className = "speed-btn py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex flex-col items-center justify-center";
+      const btns = document.querySelectorAll('.speed-btn');
+      btns.forEach(b => {
+        b.className = "speed-btn py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex flex-col items-center justify-center";
       });
-      if (activeBtn === speedSafe) {
-        activeBtn.className = "speed-btn py-2 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-emerald-700 border border-emerald-200 flex flex-col items-center justify-center";
-      } else if (activeBtn === speedMedium) {
-        activeBtn.className = "speed-btn py-2 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-blue-700 border border-blue-200 flex flex-col items-center justify-center";
-      } else if (activeBtn === speedFast) {
-        activeBtn.className = "speed-btn py-2 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-violet-700 border border-violet-200 flex flex-col items-center justify-center";
-      }
+      const colorMap = {
+        'speed-safe':   'bg-white text-emerald-700 border border-emerald-200',
+        'speed-medium': 'bg-white text-blue-700 border border-blue-200',
+        'speed-fast':   'bg-white text-violet-700 border border-violet-200'
+      };
+      activeBtn.className = `speed-btn py-2 text-xs font-semibold rounded-lg transition-all shadow-sm flex flex-col items-center justify-center ${colorMap[activeBtn.id]}`;
       concurrencyLimit = limit;
       delayBetweenTasks = delay;
     }
 
-    speedSafe.addEventListener('click', () => updateSpeedUI(speedSafe, 1, 2000));
-    speedMedium.addEventListener('click', () => updateSpeedUI(speedMedium, 2, 1000));
-    speedFast.addEventListener('click', () => updateSpeedUI(speedFast, 4, 500));
+    document.getElementById('speed-safe').addEventListener('click', (e) => updateSpeedUI(e.currentTarget, 1, 2000));
+    document.getElementById('speed-medium').addEventListener('click', (e) => updateSpeedUI(e.currentTarget, 2, 1000));
+    document.getElementById('speed-fast').addEventListener('click', (e) => updateSpeedUI(e.currentTarget, 4, 500));
 
-    // Form Validator Helper
+    // =============================================
+    // FORM VALIDATION
+    // =============================================
     function validateForm() {
-      const hasTitle = jobTitleInput.value.trim().length > 0;
-      const hasDesc = jobDescInput.value.trim().length > 0;
-      const hasFiles = queue.length > 0;
-      const keyProvided = geminiApiKeyInput.value.trim().length > 0 || apiKey.length > 0;
+      const ok = jobTitleInput.value.trim() &&
+                 jobDescInput.value.trim() &&
+                 queue.length > 0 &&
+                 geminiApiKeyInput.value.trim() &&
+                 !isProcessing;
 
-      if (hasTitle && hasDesc && hasFiles && keyProvided && !isProcessing) {
+      if (ok) {
         btnStart.removeAttribute('disabled');
         btnStart.className = "w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white py-3.5 px-4 rounded-xl font-bold text-sm tracking-wide shadow-md hover:shadow-lg active:scale-[0.99] transition duration-200 cursor-pointer flex items-center justify-center gap-2";
       } else {
@@ -586,92 +577,120 @@
     jobTitleInput.addEventListener('input', validateForm);
     jobDescInput.addEventListener('input', validateForm);
 
-    btnLoadTemplate.addEventListener('click', () => {
+    document.getElementById('btn-load-template').addEventListener('click', () => {
       jobTitleInput.value = templates.title;
       jobDescInput.value = templates.desc;
-      showToast("Template Dimuat", "Kriteria posisi engineering telah dimasukkan otomatis.", "info");
+      showToast("Template Dimuat", "Kriteria posisi engineering telah dimasukkan.", "info");
       validateForm();
     });
 
-      // Dropzone Drag-and-Drop Triggers
-      dropzone.addEventListener('click', (e) => {
-        // Memastikan klik tidak terhalang oleh element teks atau ikon di dalamnya
-        if (e.target !== fileInput) {
-          fileInput.click();
-        }
-      });
+    // =============================================
+    // FILE UPLOAD — DROPZONE + INPUT
+    // Menggunakan <label for="cv-files"> native HTML.
+    // Klik pada label otomatis membuka file picker tanpa perlu JS click() sama sekali.
+    // Ini bekerja di browser biasa, GitHub Pages, maupun sandbox iframe.
+    // =============================================
+    const dropzoneLabel = document.getElementById('dropzone-label');
 
-      // Tambahan bypass klik manual darurat
-      const btnClickUpload = document.getElementById('btn-click-upload');
-      if (btnClickUpload) {
-        btnClickUpload.addEventListener('click', (e) => {
-          e.stopPropagation(); // Mencegah bentrokan klik dengan kontainer luarnya
-          fileInput.click();
-        });
+    // Drag & Drop — attach ke label element
+    dropzoneLabel.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzoneLabel.classList.add('border-indigo-500', '!bg-indigo-50/40', 'scale-[1.01]');
+      dropzoneLabel.classList.remove('border-slate-300');
+    });
+
+    dropzoneLabel.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    dropzoneLabel.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!dropzoneLabel.contains(e.relatedTarget)) {
+        dropzoneLabel.classList.remove('border-indigo-500', '!bg-indigo-50/40', 'scale-[1.01]');
+        dropzoneLabel.classList.add('border-slate-300');
       }
-    
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.className = "border-2 border-indigo-500 bg-indigo-50/40 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center group scale-[1.01]";
     });
 
-    dropzone.addEventListener('dragleave', () => {
-      dropzone.className = "border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center group";
-    });
-
-    dropzone.addEventListener('drop', (e) => {
+    dropzoneLabel.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropzone.className = "border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/10 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center group";
+      e.stopPropagation();
+      dropzoneLabel.classList.remove('border-indigo-500', '!bg-indigo-50/40', 'scale-[1.01]');
+      dropzoneLabel.classList.add('border-slate-300');
       if (e.dataTransfer.files.length > 0) {
         handleFileSelection(e.dataTransfer.files);
       }
     });
 
+    // Input file change event
     fileInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
         handleFileSelection(e.target.files);
+        // FIX: Reset value agar file yang sama bisa diunggah ulang jika dihapus dari queue
+        fileInput.value = '';
       }
     });
 
+    // =============================================
+    // FILE HANDLING
+    // =============================================
     function handleFileSelection(files) {
       if (isProcessing) {
-        showToast("Proses Sedang Berjalan", "Harap tunggu sampai proses screening selesai sebelum menambah file baru.", "error");
+        showToast("Proses Berjalan", "Tunggu sampai screening selesai sebelum menambah file.", "error");
         return;
       }
-      
-      let addedCount = 0;
+
+      // FIX: Tambahkan validasi batas maksimum file
+      const remaining = MAX_FILES - queue.length;
+      if (remaining <= 0) {
+        showToast("Batas Tercapai", `Maksimum ${MAX_FILES} file PDF dalam satu sesi.`, "warning");
+        return;
+      }
+
+      let added = 0;
+      let skipped = 0;
+      let nonPdf = 0;
+
       for (let file of files) {
+        if (added >= remaining) break;
+
         if (file.type !== "application/pdf") {
-          showToast("Format Salah", `Berkas "${file.name}" dilewati karena bukan PDF.`, "error");
+          nonPdf++;
           continue;
         }
-        
-        // Prevent duplicate entries by checking name
-        if (queue.some(item => item.file.name === file.name)) continue;
+        if (queue.some(item => item.file.name === file.name && item.file.size === file.size)) {
+          skipped++;
+          continue;
+        }
 
         queue.push({
           id: 'cv-' + Math.random().toString(36).substring(2, 9),
-          file: file,
-          status: 'Antre', // Antre, Membaca, Menganalisis, Berhasil, Gagal
+          file,
+          status: 'Antre',
           retryCount: 0,
           errorMsg: ''
         });
-        addedCount++;
+        added++;
       }
 
-      if (addedCount > 0) {
-        showToast("Berkas Ditambahkan", `Berhasil memasukkan ${addedCount} berkas baru ke dalam antrean.`, "success");
+      if (nonPdf > 0) showToast("Format Salah", `${nonPdf} file dilewati karena bukan PDF.`, "error");
+      if (skipped > 0) showToast("Duplikat", `${skipped} file sudah ada di antrean.`, "warning");
+      if (added > 0) {
+        showToast("Berhasil Ditambahkan", `${added} berkas PDF masuk ke antrean.`, "success");
         renderQueue();
         validateForm();
       }
     }
 
-    function removeQueueItem(id) {
+    window.removeQueueItem = function(id) {
       if (isProcessing) return;
       queue = queue.filter(item => item.id !== id);
       renderQueue();
       validateForm();
-    }
+    };
 
     btnClearQueue.addEventListener('click', () => {
       if (isProcessing) return;
@@ -684,7 +703,9 @@
       validateForm();
     });
 
-    // Render HTML Queue items
+    // =============================================
+    // RENDER QUEUE
+    // =============================================
     function renderQueue() {
       if (queue.length === 0) {
         queuePlaceholder.classList.remove('hidden');
@@ -699,95 +720,88 @@
       queueList.innerHTML = '';
 
       queue.forEach(item => {
-        let statusBadge = '';
-        if (item.status === 'Antre') {
-          statusBadge = `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-slate-100 text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Antre</span>`;
-        } else if (item.status === 'Membaca') {
-          statusBadge = `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-blue-100 text-blue-700 flex items-center gap-1 animate-pulse"><i data-lucide="book-open" class="w-3 h-3 animate-bounce"></i> Ekstrak PDF</span>`;
-        } else if (item.status === 'Menganalisis') {
-          statusBadge = `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-violet-100 text-violet-700 flex items-center gap-1 animate-pulse"><i data-lucide="cpu" class="w-3 h-3 animate-spin"></i> Gemini AI</span>`;
-        } else if (item.status === 'Berhasil') {
-          statusBadge = `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-emerald-100 text-emerald-700 flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Berhasil</span>`;
-        } else if (item.status === 'Gagal') {
-          statusBadge = `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-rose-100 text-rose-700 flex items-center gap-1" title="${item.errorMsg}"><i data-lucide="x" class="w-3 h-3"></i> Gagal</span>`;
-        }
+        const statusMap = {
+          'Antre':       `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-slate-100 text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Antre</span>`,
+          'Membaca':     `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-blue-100 text-blue-700 flex items-center gap-1 animate-pulse"><i data-lucide="book-open" class="w-3 h-3"></i> Ekstrak PDF</span>`,
+          'Menganalisis':`<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-violet-100 text-violet-700 flex items-center gap-1 animate-pulse"><i data-lucide="cpu" class="w-3 h-3 animate-spin"></i> Gemini AI</span>`,
+          'Berhasil':    `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-emerald-100 text-emerald-700 flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Berhasil</span>`,
+          'Gagal':       `<span class="px-2 py-1 text-[10px] font-bold rounded-lg bg-rose-100 text-rose-700 flex items-center gap-1" title="${item.errorMsg}"><i data-lucide="x" class="w-3 h-3"></i> Gagal</span>`
+        };
+        const badge = statusMap[item.status] || '';
+        const removeBtn = (item.status === 'Antre' && !isProcessing)
+          ? `<button onclick="removeQueueItem('${item.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition"><i data-lucide="x" class="w-4 h-4"></i></button>`
+          : '';
 
-        const li = document.createElement('div');
-        li.className = "p-4 flex items-center justify-between hover:bg-slate-50 transition";
-        li.innerHTML = `
-          <div class="flex items-center space-x-3 truncate">
-            <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+        const div = document.createElement('div');
+        div.className = "p-4 flex items-center justify-between hover:bg-slate-50 transition";
+        div.innerHTML = `
+          <div class="flex items-center space-x-3 truncate min-w-0">
+            <div class="p-2.5 bg-rose-50 text-rose-600 rounded-xl flex-shrink-0">
               <i data-lucide="file-text" class="w-5 h-5"></i>
             </div>
-            <div class="truncate">
+            <div class="truncate min-w-0">
               <h4 class="text-xs font-bold text-slate-800 truncate" title="${item.file.name}">${item.file.name}</h4>
               <p class="text-[10px] text-slate-400 mt-0.5">${(item.file.size / 1024 / 1024).toFixed(2)} MB</p>
             </div>
           </div>
-          <div class="flex items-center space-x-2 flex-shrink-0">
-            ${statusBadge}
-            ${item.status === 'Antre' && !isProcessing ? `
-              <button onclick="removeQueueItem('${item.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition">
-                <i data-lucide="x" class="w-4 h-4"></i>
-              </button>
-            ` : ''}
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-2">
+            ${badge}
+            ${removeBtn}
           </div>
         `;
-        queueList.appendChild(li);
+        queueList.appendChild(div);
       });
       lucide.createIcons();
     }
 
-    // PDF TEXT EXTRACTION CORE VIA PDF.JS
-    async function extractTextFromPDF(fileFile) {
-      const arrayBuffer = await fileFile.arrayBuffer();
+    // =============================================
+    // PDF EXTRACTION
+    // FIX: Tambahkan pdf.destroy() untuk cegah memory leak
+    // =============================================
+    async function extractTextFromPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
-      
-      // Limit to max first 8 pages to save response tokens tokens
-      const pagesToRead = Math.min(pdf.numPages, 8); 
+      const pagesToRead = Math.min(pdf.numPages, 8);
+
       for (let i = 1; i <= pagesToRead; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items.map(item => item.str).join(" ");
-        fullText += `--- Halaman ${i} ---
-` + pageText + "
-
-";
+        fullText += `--- Halaman ${i} ---\n${pageText}\n\n`;
+        page.cleanup(); // FIX: Bebaskan resource tiap halaman
       }
+
+      await pdf.destroy(); // FIX: Destroy PDF instance setelah selesai — cegah memory leak
       return fullText;
     }
 
-    // GEMINI INTEGRATION VIA STANDARD REST API WITH EXPONENTIAL BACKOFF
+    // =============================================
+    // GEMINI API CALL WITH EXPONENTIAL BACKOFF
+    // =============================================
     async function callGeminiWithBackoff(textCV, jobTitle, jobDesc, onRetry) {
       const maxRetries = 4;
-      let baseDelay = 3000; 
+      const baseDelay = 3000;
       let lastError = null;
-
       const userApiKey = geminiApiKeyInput.value.trim();
-      const finalApiKey = userApiKey || apiKey; // Prefer user key, fallback to empty env key
-      
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${finalApiKey}`;
 
-      const systemPrompt = `Anda adalah Asisten HR Rekrutmen profesional. Tugas Anda adalah melakukan review CV berdasarkan posisi "${jobTitle}" dan kriteria pekerjaan berikut: "${jobDesc}" Berikan evaluasi analitis yang tajam. Anda harus merespons HANYA dengan dokumen JSON yang valid menggunakan struktur berikut: { "nama": "Nama lengkap kandidat (ekstrak dari CV, jika tidak ditemukan gunakan nama file)", "pendidikan": "Pendidikan terakhir kandidat beserta nama universitas jika ada (misal: S1 Teknik Informatika, Universitas Gadjah Mada)", "jurusan": "Jurusan / spesialisasi (misal: Teknik Informatika)", "pengalaman_tahun": 5.5, (estimasi total tahun pengalaman kerja, tipe angka/float), "pengalaman_terakhir": "Jabatan dan nama perusahaan terakhir kandidat (misal: Senior Developer di PT Maju Mundur)", "skor": 85, (nilai kecocokan kandidat dari skala 0 sampai 100 berdasarkan kecocokan teknis dan pengalaman terhadap syarat pekerjaan), "kelebihan": ["kelebihan utama pelamar 1", "kelebihan 2", "kelebihan 3"], (maksimal 4 poin spesifik), "kekurangan": ["kekurangan/kesenjangan keahlian pelamar 1", "kekurangan 2"], (poin kesenjangan terhadap syarat), "area_pengembangan": "Satu paragraf singkat saran sertifikasi atau peningkatan skill yang dibutuhkan agar kandidat semakin cocok dengan posisi ini.", "ringkasan": "Satu paragraf ringkasan keputusan evaluasi HR" }`;
+      if (!userApiKey) throw new Error("API Key Gemini belum dimasukkan.");
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`;
+
+      const systemPrompt = `Anda adalah Asisten HR Rekrutmen profesional. Tugas Anda adalah review CV untuk posisi "${jobTitle}" dengan kriteria: "${jobDesc}". Berikan evaluasi analitis yang tajam. Respons HANYA dengan JSON valid dengan struktur: { "nama": "string", "pendidikan": "string", "jurusan": "string", "pengalaman_tahun": number, "pengalaman_terakhir": "string", "skor": number (0-100), "kelebihan": ["string"], "kekurangan": ["string"], "area_pengembangan": "string", "ringkasan": "string" }`;
 
       const payload = {
-        contents: [{ parts: [{ text: `Data Mentah Teks CV:
-${textCV}` }] }],
+        contents: [{ parts: [{ text: `Data CV:\n${textCV}` }] }],
         systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { 
-          responseMimeType: "application/json",
-          temperature: 0.2
-        }
+        generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
       };
 
       for (let i = 0; i <= maxRetries; i++) {
         if (i > 0) {
-          const currentDelay = baseDelay * Math.pow(2, i - 1);
           if (typeof onRetry === 'function') onRetry(i);
-          await new Promise(resolve => setTimeout(resolve, currentDelay));
+          await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, i - 1)));
         }
-
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -797,33 +811,48 @@ ${textCV}` }] }],
 
           if (response.ok) {
             const data = await response.json();
-            const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textResponse) {
-              return JSON.parse(textResponse);
-            }
-            throw new Error("Respon API tidak memiliki konten.");
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error("Respon API kosong.");
+            // FIX: Tambahkan strip markdown fence sebelum parse JSON
+            const clean = text.replace(/```json|```/gi, '').trim();
+            return JSON.parse(clean);
           }
 
           if (response.status === 429 || response.status >= 500) {
-            lastError = new Error(`HTTP ${response.status}: API limit atau server terganggu.`);
+            lastError = new Error(`HTTP ${response.status}: Server limit/gangguan. Akan coba ulang...`);
             continue;
           }
 
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        } catch (error) {
-          lastError = error;
+          // FIX: Tangkap pesan error dari body response untuk debugging lebih jelas
+          const errBody = await response.json().catch(() => ({}));
+          const errMsg = errBody?.error?.message || `HTTP ${response.status}`;
+          throw new Error(errMsg);
+
+        } catch (err) {
+          if (err.message.includes("HTTP") && !err.message.includes("429")) throw err;
+          lastError = err;
         }
       }
-      throw lastError;
+      throw lastError || new Error("Gagal setelah beberapa percobaan.");
     }
 
-    // MAIN BATCH CONTROLLER
+    // =============================================
+    // MAIN BATCH PROCESSOR
+    // FIX: Tambahkan validasi API key sebelum mulai proses
+    // =============================================
     btnStart.addEventListener('click', async () => {
       if (isProcessing) return;
+
+      // FIX: Validasi API key sebelum mulai — tidak biarkan semua gagal baru user tahu
+      const key = geminiApiKeyInput.value.trim();
+      if (!key) {
+        showToast("API Key Diperlukan", "Masukkan API Key Gemini terlebih dahulu sebelum memulai.", "error");
+        geminiApiKeyInput.focus();
+        return;
+      }
+
       isProcessing = true;
       validateForm();
-
       progressBox.classList.remove('hidden');
       resultsPanel.classList.remove('hidden');
 
@@ -842,10 +871,7 @@ ${textCV}` }] }],
       while (index < queue.length || activeTasks.length > 0) {
         while (activeTasks.length < concurrencyLimit && index < queue.length) {
           const item = queue[index];
-          if (item.status === 'Berhasil') {
-            index++;
-            continue;
-          }
+          if (item.status === 'Berhasil') { index++; continue; }
 
           const task = processSingleCV(item).then(() => {
             activeTasks.splice(activeTasks.indexOf(task), 1);
@@ -853,17 +879,15 @@ ${textCV}` }] }],
           activeTasks.push(task);
           index++;
 
-          if (index < queue.length) {
-            await new Promise(resolve => setTimeout(resolve, delayBetweenTasks));
+          if (index < queue.length && delayBetweenTasks > 0) {
+            await new Promise(r => setTimeout(r, delayBetweenTasks));
           }
         }
-        if (activeTasks.length > 0) {
-          await Promise.race(activeTasks);
-        }
+        if (activeTasks.length > 0) await Promise.race(activeTasks);
       }
 
       isProcessing = false;
-      showToast("Proses Selesai", "Penyaringan dokumen CV pelamar telah rampung dilaksanakan.", "success");
+      showToast("Proses Selesai", "Penyaringan CV telah rampung dilaksanakan.", "success");
       renderQueue();
       validateForm();
     });
@@ -875,68 +899,46 @@ ${textCV}` }] }],
       try {
         item.status = 'Membaca';
         renderQueue();
-        const extractedText = await extractTextFromPDF(item.file);
+        const text = await extractTextFromPDF(item.file);
 
-        if (!extractedText.trim()) {
-          throw new Error("Gagal mengekstrak teks dari PDF ini. Kemungkinan PDF berupa gambar scan atau terkunci password.");
+        if (!text.trim()) {
+          throw new Error("Gagal mengekstrak teks. PDF mungkin berupa gambar scan atau terkunci password.");
         }
 
         item.status = 'Menganalisis';
         renderQueue();
 
-        const jsonResult = await callGeminiWithBackoff(
-          extractedText,
-          jobTitleInput.value.trim(),
-          jobDescInput.value.trim(),
-          (retryNum) => {
-            item.errorMsg = `Rate limit tercapai. Mencoba ulang ke-${retryNum}...`;
-            renderQueue();
-          }
+        const result = await callGeminiWithBackoff(
+          text, jobTitleInput.value.trim(), jobDescInput.value.trim(),
+          (n) => { item.errorMsg = `Rate limit. Percobaan ke-${n}...`; renderQueue(); }
         );
 
         item.status = 'Berhasil';
-        
-        const finalizedData = {
-          ...jsonResult,
-          _id: item.id,
-          _file: item.file.name,
-          _ok: true
-        };
+        item.errorMsg = '';
 
-        const existingIdx = screeningResults.findIndex(r => r._file === item.file.name);
-        if (existingIdx !== -1) {
-          screeningResults[existingIdx] = finalizedData;
-        } else {
-          screeningResults.push(finalizedData);
-        }
+        const finalData = { ...result, _id: item.id, _file: item.file.name, _ok: true };
+        const idx = screeningResults.findIndex(r => r._file === item.file.name);
+        if (idx !== -1) screeningResults[idx] = finalData;
+        else screeningResults.push(finalData);
 
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(`[${item.file.name}]`, err);
         item.status = 'Gagal';
-        item.errorMsg = error.message;
+        item.errorMsg = err.message;
 
         const failData = {
-          _id: item.id,
-          _file: item.file.name,
-          _ok: false,
-          nama: item.file.name,
-          skor: 0,
-          pendidikan: 'Gagal diproses',
-          jurusan: '-',
-          pengalaman_tahun: 0,
-          pengalaman_terakhir: '-',
-          kelebihan: [],
-          kekurangan: [error.message],
+          _id: item.id, _file: item.file.name, _ok: false,
+          nama: item.file.name.replace('.pdf', ''), skor: 0,
+          pendidikan: 'Gagal diproses', jurusan: '-',
+          pengalaman_tahun: 0, pengalaman_terakhir: '-',
+          kelebihan: [], kekurangan: [err.message],
           area_pengembangan: 'N/A',
-          ringkasan: `Berkas gagal diproses secara otomatis oleh Gemini AI. Detail kesalahan: ${error.message}`
+          ringkasan: `Berkas gagal diproses. Error: ${err.message}`
         };
-
         const idx = screeningResults.findIndex(r => r._file === item.file.name);
-        if (idx !== -1) {
-          screeningResults[idx] = failData;
-        } else {
-          screeningResults.push(failData);
-        }
+        if (idx !== -1) screeningResults[idx] = failData;
+        else screeningResults.push(failData);
+
       } finally {
         currentProcessingSet.delete(item.id);
         renderQueue();
@@ -945,18 +947,16 @@ ${textCV}` }] }],
       }
     }
 
-    // Progress update helper function
     function updateProgressUI() {
       const total = queue.length;
       if (total === 0) return;
-
       const success = queue.filter(q => q.status === 'Berhasil').length;
-      const failed = queue.filter(q => q.status === 'Gagal').length;
-      const processing = currentProcessingSet.size;
-      const queued = total - success - failed - processing;
+      const failed  = queue.filter(q => q.status === 'Gagal').length;
+      const proc    = currentProcessingSet.size;
+      const queued  = total - success - failed - proc;
 
-      statQueued.textContent = queued;
-      statProcessing.textContent = processing;
+      statQueued.textContent = Math.max(0, queued);
+      statProcessing.textContent = proc;
       statSuccess.textContent = success;
       statFailed.textContent = failed;
 
@@ -965,9 +965,11 @@ ${textCV}` }] }],
       progressPercentage.textContent = `${pct}%`;
     }
 
-    // Classification score badges helpers
+    // =============================================
+    // RESULTS TABLE
+    // =============================================
     function getStatusBadge(score, ok) {
-      if (!ok) return `<span class="px-2.5 py-1 text-xs rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200">Gagal</span>`;
+      if (!ok)      return `<span class="px-2.5 py-1 text-xs rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200">Gagal</span>`;
       if (score >= 80) return `<span class="px-2.5 py-1 text-xs rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Lolos</span>`;
       if (score >= 60) return `<span class="px-2.5 py-1 text-xs rounded-full font-bold bg-amber-100 text-amber-700 border border-amber-200">Dipertimbangkan</span>`;
       return `<span class="px-2.5 py-1 text-xs rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200">Tolak</span>`;
@@ -979,12 +981,7 @@ ${textCV}` }] }],
       return "Kurang Sesuai / Tolak";
     }
 
-    // RESULTS DASHBOARD RENDERING ENGINE
-    let activeFilter = 'all';
-
     function renderResultsTable() {
-      resultsTableBody.innerHTML = '';
-      
       const filtered = screeningResults.filter(r => {
         if (activeFilter === 'all') return true;
         if (activeFilter === 'rekomendasi') return r._ok && r.skor >= 80;
@@ -995,64 +992,42 @@ ${textCV}` }] }],
 
       totalResultsCount.textContent = screeningResults.length;
       filteredCount.textContent = filtered.length;
+      filtered.sort((a, b) => b.skor - a.skor);
+      resultsTableBody.innerHTML = '';
 
       if (filtered.length === 0) {
-        resultsTableBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="py-10 text-center text-slate-400 font-medium">
-              Tidak ada data kandidat yang cocok dengan kriteria filter saat ini.
-            </td>
-          </tr>
-        `;
+        resultsTableBody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400 font-medium">Tidak ada kandidat cocok dengan filter ini.</td></tr>`;
         return;
       }
 
-      // Sort dashboard view descending by score
-      filtered.sort((a,b) => b.skor - a.skor);
-
       filtered.forEach(item => {
-        let scoreColorClass = 'text-slate-600 bg-slate-50';
-        let scoreBg = 'border-slate-200';
-        
+        let sc = 'text-slate-600 bg-slate-50 border-slate-200';
         if (item._ok) {
-          if (item.skor >= 80) {
-            scoreColorClass = 'text-emerald-700 bg-emerald-50';
-            scoreBg = 'border-emerald-200';
-          } else if (item.skor >= 60) {
-            scoreColorClass = 'text-amber-700 bg-amber-50';
-            scoreBg = 'border-amber-200';
-          } else {
-            scoreColorClass = 'text-rose-700 bg-rose-50';
-            scoreBg = 'border-rose-200';
-          }
+          if (item.skor >= 80)      sc = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+          else if (item.skor >= 60) sc = 'text-amber-700 bg-amber-50 border-amber-200';
+          else                      sc = 'text-rose-700 bg-rose-50 border-rose-200';
         }
 
-        const row = document.createElement('tr');
-        row.className = "hover:bg-slate-50/70 transition border-b border-slate-100 align-middle";
-        row.innerHTML = `
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/70 transition border-b border-slate-100 align-middle";
+        tr.innerHTML = `
           <td class="py-4 px-6 text-center">
             <input type="checkbox" value="${item._id}" class="candidate-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
           </td>
           <td class="py-4 px-6">
-            <div class="font-bold text-slate-900 text-sm">${item.nama}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px]" title="${item._file}">
-              <span class="inline-block align-middle"><i data-lucide="file" class="w-3 h-3 mr-0.5"></i></span>${item._file}
+            <div class="font-bold text-slate-900 text-sm">${escapeHtml(item.nama)}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px]" title="${escapeHtml(item._file)}">
+              <i data-lucide="file" class="w-3 h-3 inline mr-0.5 align-middle"></i>${escapeHtml(item._file)}
             </div>
           </td>
           <td class="py-4 px-6">
-            <div class="font-semibold text-slate-700 truncate max-w-[260px]" title="${item.pendidikan} (${item.jurusan})">${item.pendidikan}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">
-              Exp: <strong class="text-slate-600">${item.pengalaman_tahun} Tahun</strong> &middot; ${item.pengalaman_terakhir}
-            </div>
+            <div class="font-semibold text-slate-700 truncate max-w-[260px]">${escapeHtml(item.pendidikan)}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Exp: <strong class="text-slate-600">${item.pengalaman_tahun} Thn</strong> &middot; ${escapeHtml(item.pengalaman_terakhir)}</div>
           </td>
           <td class="py-4 px-6 text-center">
-            <span class="inline-flex items-center justify-center font-extrabold text-xs h-9 w-9 rounded-full ${scoreBg} ${scoreColorClass} border border-current/10 code-font">
-              ${item.skor}
-            </span>
+            <span class="inline-flex items-center justify-center font-extrabold text-xs h-9 w-9 rounded-full border ${sc} code-font">${item.skor}</span>
           </td>
-          <td class="py-4 px-6">
-            ${getStatusBadge(item.skor, item._ok)}
-          </td>
+          <td class="py-4 px-6">${getStatusBadge(item.skor, item._ok)}</td>
           <td class="py-4 px-6 text-center">
             <div class="flex items-center justify-center space-x-1">
               <button onclick="viewDetail('${item._id}')" class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition text-xs font-bold flex items-center gap-1">
@@ -1064,14 +1039,24 @@ ${textCV}` }] }],
             </div>
           </td>
         `;
-        resultsTableBody.appendChild(row);
+        resultsTableBody.appendChild(tr);
       });
 
       lucide.createIcons();
       attachCheckEvents();
     }
 
-    // Filter Navigation Tabs
+    // FIX: Helper escapeHtml untuk cegah XSS dari nama file/nama kandidat
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // FILTER TABS
     document.querySelectorAll('.filter-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
         document.querySelectorAll('.filter-tab').forEach(t => {
@@ -1083,81 +1068,69 @@ ${textCV}` }] }],
       });
     });
 
-    // Delete isolated record row
     window.deleteResult = function(id) {
       screeningResults = screeningResults.filter(r => r._id !== id);
       renderResultsTable();
     };
 
-    // SINGLE APPLICANT DETAIL MODAL TRIGGER
+    // =============================================
+    // DETAIL MODAL
+    // =============================================
     window.viewDetail = function(id) {
-      const cand = screeningResults.find(r => r._id === id);
-      if (!cand) return;
+      const c = screeningResults.find(r => r._id === id);
+      if (!c) return;
 
       const header = document.getElementById('detail-modal-header');
-      let statusClass = '';
-      let statusDesc = '';
+      let statusClass = '', statusDesc = '', headerClass = '';
 
-      if (!cand._ok) {
-        header.className = "p-6 border-b border-slate-150 flex items-center justify-between text-white bg-gradient-to-r from-rose-600 to-red-700";
-        statusClass = "bg-rose-100 text-rose-700";
-        statusDesc = "Pemrosesan dokumen gagal total akibat kendala format data.";
-      } else if (cand.skor >= 80) {
-        header.className = "p-6 border-b border-slate-150 flex items-center justify-between text-white bg-gradient-to-r from-emerald-600 to-teal-600";
-        statusClass = "bg-emerald-100 text-emerald-700";
-        statusDesc = "Sangat Direkomendasikan! Kriteria pelamar sangat cocok dengan posisi.";
-      } else if (cand.skor >= 60) {
-        header.className = "p-6 border-b border-slate-150 flex items-center justify-between text-white bg-gradient-to-r from-amber-500 to-amber-600";
-        statusClass = "bg-amber-100 text-amber-700";
-        statusDesc = "Dapat Dipertimbangkan. Pelamar memiliki potensi meskipun ada kualifikasi yang absen.";
+      if (!c._ok) {
+        headerClass = "p-6 border-b flex items-center justify-between text-white bg-gradient-to-r from-rose-600 to-red-700";
+        statusClass = "bg-rose-100 text-rose-700"; statusDesc = "Pemrosesan gagal akibat kendala format data.";
+      } else if (c.skor >= 80) {
+        headerClass = "p-6 border-b flex items-center justify-between text-white bg-gradient-to-r from-emerald-600 to-teal-600";
+        statusClass = "bg-emerald-100 text-emerald-700"; statusDesc = "Sangat Direkomendasikan! Kandidat sangat cocok dengan posisi.";
+      } else if (c.skor >= 60) {
+        headerClass = "p-6 border-b flex items-center justify-between text-white bg-gradient-to-r from-amber-500 to-amber-600";
+        statusClass = "bg-amber-100 text-amber-700"; statusDesc = "Dapat Dipertimbangkan — ada kualifikasi yang perlu diperkuat.";
       } else {
-        header.className = "p-6 border-b border-slate-150 flex items-center justify-between text-white bg-gradient-to-r from-slate-600 to-slate-700";
-        statusClass = "bg-slate-100 text-slate-600";
-        statusDesc = "Kandidat kurang memenuhi kriteria teknis pekerjaan yang dicari.";
+        headerClass = "p-6 border-b flex items-center justify-between text-white bg-gradient-to-r from-slate-600 to-slate-700";
+        statusClass = "bg-slate-100 text-slate-600"; statusDesc = "Kandidat kurang memenuhi kriteria teknis pekerjaan.";
       }
 
-      document.getElementById('detail-nama').textContent = cand.nama;
-      document.getElementById('detail-posisi').innerHTML = `${cand.pendidikan} &middot; <span class="font-bold">${cand.pengalaman_tahun} Thn Pengalaman</span>`;
-      document.getElementById('detail-skor').textContent = cand.skor + "%";
-      
-      const statusPill = document.getElementById('detail-status-pill');
-      statusPill.className = `text-xs px-2.5 py-1 rounded-full font-bold ${statusClass}`;
-      statusPill.textContent = !cand._ok ? "Gagal" : (cand.skor >= 80 ? "Lolos Seleksi" : (cand.skor >= 60 ? "Dipertimbangkan" : "Tolak"));
+      header.className = headerClass;
+      document.getElementById('detail-nama').textContent = c.nama;
+      document.getElementById('detail-posisi').innerHTML = `${escapeHtml(c.pendidikan)} &middot; <strong>${c.pengalaman_tahun} Thn Pengalaman</strong>`;
+      document.getElementById('detail-skor').textContent = c.skor + "%";
+
+      const pill = document.getElementById('detail-status-pill');
+      pill.className = `text-xs px-2.5 py-1 rounded-full font-bold ${statusClass}`;
+      pill.textContent = !c._ok ? "Gagal" : c.skor >= 80 ? "Lolos Seleksi" : c.skor >= 60 ? "Dipertimbangkan" : "Tolak";
       document.getElementById('detail-status-desc').textContent = statusDesc;
 
-      const prosList = document.getElementById('detail-kelebihan');
-      prosList.innerHTML = '';
-      if (cand.kelebihan && cand.kelebihan.length > 0) {
-        cand.kelebihan.forEach(k => {
-          const li = document.createElement('li');
-          li.className = "flex items-start gap-2 text-slate-700";
-          li.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0"></i> <span>${k}</span>`;
-          prosList.appendChild(li);
-        });
-      } else {
-        prosList.innerHTML = `<li class="text-slate-400 italic">Tidak ada poin kelebihan spesifik yang tercatat.</li>`;
-      }
+      const renderList = (ulId, items, icon, color) => {
+        const ul = document.getElementById(ulId);
+        ul.innerHTML = '';
+        if (items?.length) {
+          items.forEach(k => {
+            const li = document.createElement('li');
+            li.className = "flex items-start gap-2 text-slate-700";
+            li.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 ${color} mt-0.5 flex-shrink-0"></i><span>${escapeHtml(k)}</span>`;
+            ul.appendChild(li);
+          });
+        } else {
+          ul.innerHTML = `<li class="text-slate-400 italic">Tidak ada poin yang tercatat.</li>`;
+        }
+      };
 
-      const consList = document.getElementById('detail-kekurangan');
-      consList.innerHTML = '';
-      if (cand.kekurangan && cand.kekurangan.length > 0) {
-        cand.kekurangan.forEach(k => {
-          const li = document.createElement('li');
-          li.className = "flex items-start gap-2 text-slate-700";
-          li.innerHTML = `<i data-lucide="x" class="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0"></i> <span>${k}</span>`;
-          consList.appendChild(li);
-        });
-      } else {
-        consList.innerHTML = `<li class="text-slate-400 italic">Tidak ada kelemahan kualifikasi fatal yang tercatat.</li>`;
-      }
+      renderList('detail-kelebihan', c.kelebihan, 'check', 'text-emerald-600');
+      renderList('detail-kekurangan', c.kekurangan, 'x', 'text-rose-500');
 
-      document.getElementById('detail-area-pengembangan').textContent = cand.area_pengembangan || '-';
-      document.getElementById('detail-ringkasan').textContent = cand.ringkasan || '-';
-      document.getElementById('detail-filename').textContent = cand._file;
-      
-      // Init Avatar Initial
-      const avatarBox = document.getElementById('detail-avatar');
-      avatarBox.textContent = cand.nama ? cand.nama.trim().charAt(0) : 'C';
+      document.getElementById('detail-area-pengembangan').textContent = c.area_pengembangan || '-';
+      document.getElementById('detail-ringkasan').textContent = c.ringkasan || '-';
+      document.getElementById('detail-filename').textContent = c._file;
+
+      const avatar = document.getElementById('detail-avatar');
+      avatar.textContent = c.nama ? c.nama.trim().charAt(0).toUpperCase() : '?';
 
       lucide.createIcons();
       detailModal.classList.remove('hidden');
@@ -1168,93 +1141,81 @@ ${textCV}` }] }],
     document.getElementById('btn-close-detail-foot').addEventListener('click', closeDetailModal);
     document.getElementById('close-detail-bg').addEventListener('click', closeDetailModal);
 
-    // COMPARE PROFILES LOGIC ENGINE
+    // =============================================
+    // COMPARE MODAL
+    // =============================================
     const selectAllCheck = document.getElementById('select-all');
     const btnCompare = document.getElementById('btn-compare');
 
     selectAllCheck.addEventListener('change', (e) => {
-      document.querySelectorAll('.candidate-checkbox').forEach(cb => {
-        cb.checked = e.target.checked;
-      });
-      toggleCompareButtonState();
+      document.querySelectorAll('.candidate-checkbox').forEach(cb => cb.checked = e.target.checked);
+      toggleCompareState();
     });
 
     function attachCheckEvents() {
       document.querySelectorAll('.candidate-checkbox').forEach(cb => {
         cb.addEventListener('change', () => {
-          toggleCompareButtonState();
-          // Adjust master select state accordingly
-          const allChecks = document.querySelectorAll('.candidate-checkbox');
-          const checkedCount = Array.from(allChecks).filter(c => c.checked).length;
-          selectAllCheck.checked = (checkedCount === allChecks.length);
+          toggleCompareState();
+          const all = document.querySelectorAll('.candidate-checkbox');
+          selectAllCheck.checked = Array.from(all).every(c => c.checked);
+          selectAllCheck.indeterminate = !selectAllCheck.checked && Array.from(all).some(c => c.checked);
         });
       });
     }
 
-    function toggleCompareButtonState() {
+    function toggleCompareState() {
       const checked = Array.from(document.querySelectorAll('.candidate-checkbox')).filter(c => c.checked);
-      if (checked.length >= 2 && checked.length <= 4) {
-        btnCompare.removeAttribute('disabled');
-        btnCompare.className = "bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer";
-      } else {
-        btnCompare.setAttribute('disabled', 'true');
-        btnCompare.className = "bg-indigo-50 text-indigo-400 border border-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition";
-      }
+      const valid = checked.length >= 2 && checked.length <= 4;
+      btnCompare.disabled = !valid;
+      btnCompare.className = valid
+        ? "bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+        : "bg-indigo-50 text-indigo-400 border border-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition";
     }
 
     btnCompare.addEventListener('click', () => {
-      const selectedIds = Array.from(document.querySelectorAll('.candidate-checkbox'))
-                            .filter(c => c.checked)
-                            .map(c => c.value);
-      
+      const ids = Array.from(document.querySelectorAll('.candidate-checkbox')).filter(c => c.checked).map(c => c.value);
       compareCardsWrapper.innerHTML = '';
-      
-      selectedIds.forEach(id => {
-        const cand = screeningResults.find(r => r._id === id);
-        if (!cand) return;
 
-        let cardHeaderBg = 'from-slate-50 to-white';
-        let scoreColor = 'text-slate-700';
-        if (cand._ok) {
-          if (cand.skor >= 80) { cardHeaderBg = 'from-emerald-50/70 to-white'; scoreColor = 'text-emerald-600'; }
-          else if (cand.skor >= 60) { cardHeaderBg = 'from-amber-50/70 to-white'; scoreColor = 'text-amber-600'; }
-          else { cardHeaderBg = 'from-rose-50/70 to-white'; scoreColor = 'text-rose-600'; }
+      ids.forEach(id => {
+        const c = screeningResults.find(r => r._id === id);
+        if (!c) return;
+        let hdr = 'from-slate-50/70 to-white', sc = 'text-slate-700';
+        if (c._ok) {
+          if (c.skor >= 80)       { hdr = 'from-emerald-50/70 to-white'; sc = 'text-emerald-600'; }
+          else if (c.skor >= 60)  { hdr = 'from-amber-50/70 to-white';  sc = 'text-amber-600'; }
+          else                    { hdr = 'from-rose-50/70 to-white';   sc = 'text-rose-600'; }
         }
-
         const card = document.createElement('div');
         card.className = "w-72 bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm flex-shrink-0 overflow-hidden";
         card.innerHTML = `
-          <div class="p-5 border-b border-slate-200 bg-gradient-to-br ${cardHeaderBg}">
+          <div class="p-5 border-b border-slate-200 bg-gradient-to-br ${hdr}">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">SKOR KECOCOKAN</span>
-              <span class="text-2xl font-extrabold ${scoreColor} code-font">${cand.skor}%</span>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">SKOR</span>
+              <span class="text-2xl font-extrabold ${sc} code-font">${c.skor}%</span>
             </div>
-            <h4 class="text-sm font-extrabold mt-3 text-slate-900 truncate" title="${cand.nama}">${cand.nama}</h4>
-            <p class="text-[11px] text-slate-500 mt-0.5 truncate">${cand.pendidikan}</p>
+            <h4 class="text-sm font-extrabold mt-3 text-slate-900 truncate">${escapeHtml(c.nama)}</h4>
+            <p class="text-[11px] text-slate-500 mt-0.5 truncate">${escapeHtml(c.pendidikan)}</p>
           </div>
           <div class="p-5 space-y-5 flex-grow text-xs leading-relaxed">
             <div>
               <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Pengalaman Terakhir</span>
-              <p class="font-bold text-slate-700">${cand.pengalaman_terakhir}</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Durasi total: <span class="text-slate-700 font-semibold">${cand.pengalaman_tahun} Tahun</span></p>
+              <p class="font-bold text-slate-700">${escapeHtml(c.pengalaman_terakhir)}</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Total: <span class="font-semibold text-slate-700">${c.pengalaman_tahun} Tahun</span></p>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Kelebihan</span>
-              <ul class="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">
-                ${(cand.kelebihan || []).map(k => `<li>${k}</li>`).join('')}
-              </ul>
+              <ul class="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">${(c.kelebihan||[]).map(k=>`<li>${escapeHtml(k)}</li>`).join('')}</ul>
             </div>
             <div>
               <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Kekurangan</span>
-              <ul class="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">
-                ${(cand.kekurangan || []).map(k => `<li>${k}</li>`).join('')}
-              </ul>
+              <ul class="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">${(c.kekurangan||[]).map(k=>`<li>${escapeHtml(k)}</li>`).join('')}</ul>
             </div>
           </div>
         `;
         compareCardsWrapper.appendChild(card);
       });
 
+      lucide.createIcons();
       compareModal.classList.remove('hidden');
     });
 
@@ -1263,75 +1224,53 @@ ${textCV}` }] }],
     document.getElementById('btn-close-compare-foot').addEventListener('click', closeCompareModal);
     document.getElementById('close-compare-bg').addEventListener('click', closeCompareModal);
 
-    // EXPORT TO EXCEL GENERATION VIA SHEETJS
+    // =============================================
+    // EXPORT EXCEL
+    // =============================================
     document.getElementById('btn-export-excel').addEventListener('click', () => {
-      if (screeningResults.length === 0) return;
+      if (!screeningResults.length) return;
 
       const wb = XLSX.utils.book_new();
-      
-      // Sheet 1: Master Summary Dashboard List
-      const summaryRows = [['LAPORAN EVALUASI AUTOMATED SCREENING CV PELAMAR'], [], ['Posisi Lowongan:', jobTitleInput.value.trim()], ['Tanggal Tarik Laporan:', new Date().toLocaleDateString('id-ID')], [], ['NAMA LENGKAP PELAMAR', 'SKOR KECOCOKAN %', 'REKOMENDASI HR', 'PENDIDIKAN TERAKHIR', 'BIDANG / JURUSAN', 'TOTAL PENGALAMAN (THN)', 'JABATAN TERAKHIR', 'NAMA FILE BERKAS']];
-      
-      // Sort template descending by score
-      const sortedResults = [...screeningResults].sort((a,b) => b.skor - a.skor);
-      
-      sortedResults.forEach(r => {
-        summaryRows.push([
-          r.nama,
-          r.skor + '%',
-          getStatusLabel(r.skor),
-          r.pendidikan,
-          r.jurusan,
-          r.pengalaman_tahun,
-          r.pengalaman_terakhir,
-          r._file
-        ]);
-      });
+      const sorted = [...screeningResults].sort((a, b) => b.skor - a.skor);
 
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-      wsSummary['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 25 }, { wch: 28 }, { wch: 22 }, { wch: 22 }, { wch: 32 }, { wch: 30 }];
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Hasil');
+      const summaryRows = [
+        ['LAPORAN EVALUASI AUTOMATED SCREENING CV PELAMAR'], [],
+        ['Posisi Lowongan:', jobTitleInput.value.trim()],
+        ['Tanggal Laporan:', new Date().toLocaleDateString('id-ID')], [],
+        ['NAMA PELAMAR', 'SKOR %', 'REKOMENDASI', 'PENDIDIKAN', 'JURUSAN', 'PENGALAMAN (THN)', 'JABATAN TERAKHIR', 'FILE CV']
+      ];
 
-      // Sheet 2+n: Deep Dive Applicant Detail Sheets
-      sortedResults.forEach(r => {
-        // Clean sheet title up due to 31 character Excel limitation rule
-        const cleanSheetName = r.nama.replace(/[:\\/ \?\*\[\]]/g, '').slice(0, 31);
-        
-        const candidateRows = [
-          ['DETAIL EVALUASI KANDIDAT'],
-          [],
-          ['NAMA PELAMAR', r.nama],
-          ['Skor Kesesuaian', r.skor + '%'],
-          ['Rekomendasi Utama', getStatusLabel(r.skor)],
-          ['Nama Dokumen Berkas', r._file],
-          [],
-          ['PROFIL AKADEMIS & PENGALAMAN'],
-          ['Pendidikan Terakhir', r.pendidikan],
-          ['Bidang Studi / Jurusan', r.jurusan],
-          ['Total Pengalaman Kerja', r.pengalaman_tahun + ' Tahun'],
-          ['Posisi Terakhir', r.pengalaman_terakhir],
-          [],
-          ['KELEBIHAN UTAMA'],
-          ...(r.kelebihan || []).map(p => ['', '✓ ' + p]),
-          [],
-          ['KEKURANGAN / KESENJANGAN SYARAT'],
-          ...(r.kekurangan || []).map(m => ['', '✗ ' + m]),
-          [],
-          ['AREA REKOMENDASI PENGEMBANGAN'],
-          ['', r.area_pengembangan],
-          [],
-          ['RINGKASAN EVALUASI HR'],
-          ['', r.ringkasan]
+      sorted.forEach(r => summaryRows.push([
+        r.nama, r.skor + '%', getStatusLabel(r.skor), r.pendidikan, r.jurusan,
+        r.pengalaman_tahun, r.pengalaman_terakhir, r._file
+      ]));
+
+      const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+      ws1['!cols'] = [28,18,25,28,22,22,32,30].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan Hasil');
+
+      sorted.forEach(r => {
+        const sheetName = r.nama.replace(/[:\\\/\?\*\[\]]/g, '').slice(0, 31) || `Kandidat`;
+        const rows = [
+          ['DETAIL EVALUASI KANDIDAT'], [],
+          ['Nama Pelamar', r.nama], ['Skor', r.skor + '%'],
+          ['Rekomendasi', getStatusLabel(r.skor)], ['File Berkas', r._file], [],
+          ['Pendidikan', r.pendidikan], ['Jurusan', r.jurusan],
+          ['Total Pengalaman', r.pengalaman_tahun + ' Tahun'],
+          ['Jabatan Terakhir', r.pengalaman_terakhir], [],
+          ['KELEBIHAN'], ...(r.kelebihan||[]).map(k => ['', '✓ ' + k]), [],
+          ['KEKURANGAN'], ...(r.kekurangan||[]).map(k => ['', '✗ ' + k]), [],
+          ['AREA PENGEMBANGAN'], ['', r.area_pengembangan], [],
+          ['RINGKASAN EVALUASI'], ['', r.ringkasan]
         ];
-
-        const wsDetail = XLSX.utils.aoa_to_sheet(candidateRows);
-        wsDetail['!cols'] = [{ wch: 30 }, { wch: 65 }];
-        XLSX.utils.book_append_sheet(wb, wsDetail, cleanSheetName || `Kandidat-${r._id}`);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 28 }, { wch: 65 }];
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
-      // Write output binary array download string
-      XLSX.writeFile(wb, `Laporan_Saring_CV_${jobTitleInput.value.trim().replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `Laporan_CV_${jobTitleInput.value.trim().replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
     });
+
   </script>
 </body>
 </html>
