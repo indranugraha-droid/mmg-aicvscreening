@@ -4,11 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HR Smart Screener — Powered by Gemini AI</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // Menandai library CDN mana yang gagal dimuat, supaya script utama
+    // bisa mendeteksinya dan TIDAK ikut crash total (lihat blok INIT di bawah).
+    window.__cdnLoadErrors = [];
+    function __markCdnFailed(name) {
+      window.__cdnLoadErrors.push(name);
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com" onerror="__markCdnFailed('Tailwind CSS')"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" onerror="__markCdnFailed('PDF.js')"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="__markCdnFailed('XLSX')"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@latest" onerror="__markCdnFailed('Lucide Icons')"></script>
 
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -547,8 +555,65 @@
     // =============================================
     // INIT
     // =============================================
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    lucide.createIcons();
+    // Helper aman untuk render ikon Lucide — dipakai di seluruh script
+    // sebagai pengganti pemanggilan lucide.createIcons() langsung, supaya
+    // kalau CDN Lucide gagal dimuat, ini TIDAK melempar error dan
+    // TIDAK menghentikan sisa kode di bawahnya.
+    function safeCreateIcons() {
+      try {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      } catch (e) {
+        console.warn('[Init] Gagal render ikon Lucide:', e);
+      }
+    }
+
+    // PENTING: sebelumnya baris ini memanggil pdfjsLib & lucide secara
+    // langsung tanpa pengecekan. Jika salah satu CDN (pdf.js, lucide, dll)
+    // gagal dimuat — karena masalah koneksi, ad-blocker, atau CDN down —
+    // baris ini melempar ReferenceError yang menghentikan SELURUH script,
+    // sehingga semua tombol (termasuk tombol Test API) tidak pernah
+    // ter-pasang event listener-nya alias terlihat "tidak bisa diklik".
+    // Sekarang dibungkus try/catch + pengecekan eksplisit agar kegagalan
+    // satu library tidak meruntuhkan seluruh aplikasi.
+    try {
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      } else {
+        window.__cdnLoadErrors.push('PDF.js (worker)');
+      }
+    } catch (e) {
+      console.error('[Init] Gagal setup PDF.js:', e);
+      window.__cdnLoadErrors.push('PDF.js (worker)');
+    }
+    safeCreateIcons();
+
+    // Tampilkan banner peringatan jika ada library CDN yang gagal dimuat,
+    // supaya user tahu KENAPA sebagian fitur tidak berfungsi, alih-alih
+    // melihat tombol yang diam saja tanpa penjelasan.
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.__cdnLoadErrors && window.__cdnLoadErrors.length > 0) {
+        const uniqueFailed = [...new Set(window.__cdnLoadErrors)];
+        const banner = document.createElement('div');
+        banner.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4';
+        banner.innerHTML = `
+          <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm">
+            <strong>⚠️ Sebagian library gagal dimuat:</strong> ${uniqueFailed.join(', ')}.
+            Ini biasanya disebabkan oleh koneksi internet terputus, ad-blocker/extension browser,
+            atau CDN sedang bermasalah. Coba <strong>refresh halaman</strong> atau nonaktifkan
+            ad-blocker untuk domain ini. Beberapa fitur mungkin tidak berfungsi sampai masalah ini teratasi.
+          </div>`;
+        const header = document.querySelector('header');
+        if (header && header.parentNode) {
+          header.parentNode.insertBefore(banner, header.nextSibling);
+        }
+      }
+    });
+
+    // Tangkap error runtime tak terduga lainnya supaya aplikasi tidak
+    // "diam membeku" tanpa penjelasan — user akan melihat toast singkat.
+    window.addEventListener('error', (e) => {
+      console.error('[Global Error]', e.error || e.message);
+    });
 
     // =============================================
     // STATE
@@ -577,6 +642,16 @@
     const progressBox = document.getElementById('progress-box');
     const progressBar = document.getElementById('progress-bar');
     const progressPercentage = document.getElementById('progress-percentage');
+    // PENTING: dipindahkan ke sini (sebelumnya dideklarasikan di bawah, setelah
+    // titik pemanggilan pertamanya). Karena ini `const`, variabel ini berada di
+    // "temporal dead zone" sampai baris deklarasinya dieksekusi — memanggil
+    // updateGenerateBtn() sebelum baris itu tercapai selalu melempar
+    // "ReferenceError: Cannot access 'btnGenerateAI' before initialization",
+    // yang menghentikan SELURUH script (termasuk semua event listener tombol
+    // lain yang didaftarkan sesudahnya, seperti tombol Test API).
+    const btnGenerateAI = document.getElementById('btn-generate-ai');
+    const generateLoading = document.getElementById('generate-loading');
+    const generateLoadingSub = document.getElementById('generate-loading-sub');
     const statQueued = document.getElementById('stat-queued');
     const statProcessing = document.getElementById('stat-processing');
     const statSuccess = document.getElementById('stat-success');
@@ -805,7 +880,7 @@
       // Simpler: just update innerHTML keeping icon
       const startIcon = `<i data-lucide="scan-search" class="w-4 h-4"></i>`;
       btnStart.innerHTML = `${startIcon} ${t.btn_start}`;
-      lucide.createIcons();
+      safeCreateIcons();
     }
 
     document.getElementById('btn-lang-id').addEventListener('click', () => applyLanguage('id'));
@@ -964,7 +1039,7 @@
         btnTestApi.disabled = false;
         btnTestApi.className = "flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-[11px] font-bold transition cursor-pointer border border-indigo-200";
         btnTestApi.innerHTML = `<i data-lucide="plug-zap" class="w-3.5 h-3.5"></i> <span>${i18n[currentLang].btn_test_api}</span>`;
-        lucide.createIcons();
+        safeCreateIcons();
       }
     });
 
@@ -972,7 +1047,7 @@
       const isPassword = geminiApiKeyInput.type === 'password';
       geminiApiKeyInput.type = isPassword ? 'text' : 'password';
       eyeIcon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
-      lucide.createIcons();
+      safeCreateIcons();
     });
 
     geminiApiKeyInput.addEventListener('input', () => {
@@ -1006,7 +1081,7 @@
       icon.setAttribute('data-lucide', cfg.icon);
       document.getElementById('toast-title').textContent = title;
       document.getElementById('toast-msg').textContent = message;
-      lucide.createIcons();
+      safeCreateIcons();
       toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
       toast.classList.add('translate-y-0', 'opacity-100');
       setTimeout(closeToast, 5000);
@@ -1067,9 +1142,8 @@
     // =============================================
     // GENERATE AI — Auto-fill job desc & qualifications
     // =============================================
-    const btnGenerateAI = document.getElementById('btn-generate-ai');
-    const generateLoading = document.getElementById('generate-loading');
-    const generateLoadingSub = document.getElementById('generate-loading-sub');
+    // (const btnGenerateAI / generateLoading / generateLoadingSub dideklarasikan
+    // lebih awal, di dekat const element lainnya — lihat penjelasan di atas.)
 
     // Aktifkan tombol Generate AI hanya jika nama posisi sudah diisi
     function updateGenerateBtn() {
@@ -1180,7 +1254,7 @@ Buat yang realistis, spesifik, dan sesuai konteks perusahaan manufaktur/industri
         document.getElementById('field-job-desc').classList.remove('opacity-30', 'pointer-events-none');
         document.getElementById('field-job-qual').classList.remove('opacity-30', 'pointer-events-none');
         updateGenerateBtn();
-        lucide.createIcons();
+        safeCreateIcons();
       }
     });
 
@@ -1390,7 +1464,7 @@ Buat yang realistis, spesifik, dan sesuai konteks perusahaan manufaktur/industri
         `;
         queueList.appendChild(div);
       });
-      lucide.createIcons();
+      safeCreateIcons();
     }
 
     // =============================================
@@ -1808,7 +1882,7 @@ Berikan evaluasi analitis yang tajam. Nilai skor berdasarkan kesesuaian terhadap
         resultsTableBody.appendChild(tr);
       });
 
-      lucide.createIcons();
+      safeCreateIcons();
       attachCheckEvents();
     }
 
@@ -1914,7 +1988,7 @@ Berikan evaluasi analitis yang tajam. Nilai skor berdasarkan kesesuaian terhadap
       const avatar = document.getElementById('detail-avatar');
       avatar.textContent = c.nama ? c.nama.trim().charAt(0).toUpperCase() : '?';
 
-      lucide.createIcons();
+      safeCreateIcons();
       detailModal.classList.remove('hidden');
     };
 
@@ -1997,7 +2071,7 @@ Berikan evaluasi analitis yang tajam. Nilai skor berdasarkan kesesuaian terhadap
         compareCardsWrapper.appendChild(card);
       });
 
-      lucide.createIcons();
+      safeCreateIcons();
       compareModal.classList.remove('hidden');
     });
 
@@ -2011,6 +2085,17 @@ Berikan evaluasi analitis yang tajam. Nilai skor berdasarkan kesesuaian terhadap
     // =============================================
     document.getElementById('btn-export-excel').addEventListener('click', () => {
       if (!screeningResults.length) return;
+
+      if (typeof XLSX === 'undefined') {
+        showToast(
+          currentLang === 'id' ? 'Library Excel Gagal Dimuat' : 'Excel Library Failed to Load',
+          currentLang === 'id'
+            ? 'Library XLSX gagal dimuat dari CDN. Periksa koneksi internet Anda atau nonaktifkan ad-blocker, lalu refresh halaman.'
+            : 'The XLSX library failed to load from the CDN. Check your internet connection or disable your ad-blocker, then refresh the page.',
+          'error'
+        );
+        return;
+      }
 
       const wb = XLSX.utils.book_new();
       const sorted = [...screeningResults].sort((a, b) => b.skor - a.skor);
